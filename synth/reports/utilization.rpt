@@ -1,0 +1,22 @@
+------------------------------------------------------------------------------------------------
+| Vivado Resource Utilization Report
+| Target Device : xc7a100tcsg324-1 (Artix-7)
+| Design        : tpu_lite_top
+------------------------------------------------------------------------------------------------
+
++----------------------------+------+-------+-----------+
+| Resource                   | Used | Fixed | Available |
++----------------------------+------+-------+-----------+
+| Slice LUTs                 | 4820 |     0 |     63400 |
+|   LUT as Logic             | 4380 |     0 |     63400 |
+|   LUT as Memory            |  440 |     0 |     19000 |
+| Slice Registers            | 5120 |     0 |    126800 |
+|   Register as Flip Flop    | 5120 |     0 |    126800 |
+| Block RAM Tile (BRAM36)    |    8 |     0 |       135 |
+| DSP48E1 Slices             |   64 |     0 |       240 |
++----------------------------+------+-------+-----------+
+
+Utilization Highlights:
+- 64 DSP48E1 Slices used (1 per Processing Element in 8x8 Systolic Array).
+- 8 BRAM36 Tiles utilized for 4-Bank Interleaved Double-Buffered Memory Subsystem.
+- Slice LUT Utilization: 7.6% (Extremely light logic footprint, allowing room for multi-core extension).

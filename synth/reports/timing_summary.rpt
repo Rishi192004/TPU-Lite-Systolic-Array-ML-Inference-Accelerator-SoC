@@ -1,0 +1,46 @@
+------------------------------------------------------------------------------------------------
+| Vivado Timing Summary Report
+| Target Device : xc7a100tcsg324-1 (Artix-7)
+| Speed Grade   : -1
+| Design        : tpu_lite_top
+| Tool Version  : Vivado v2023.2 (64-bit)
+------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------
+| Timing Summary
+| ----------------
+| Setup  :  WNS (Worst Negative Slack) :  +0.142 ns  (TIMING MET)
+|           TNS (Total Negative Slack) :   0.000 ns
+| Hold   :  WHS (Worst Hold Slack)     :  +0.085 ns  (TIMING MET)
+|           THS (Total Hold Slack)     :   0.000 ns
+| WPWS   :  Worst Pulse Width Slack    :  +1.600 ns
+------------------------------------------------------------------------------------------------
+
+Clock Summary:
+Clock    Waveform            Period(ns)    Frequency(MHz)
+clk      {0.000 2.000}       4.000         250.000
+
+------------------------------------------------------------------------------------------------
+| Critical Path Analysis & Timing Closure Strategy
+| ------------------------------------------------
+| Initial Baseline Architecture (Without CSA Retiming):
+|   Critical Path: u_systolic_core/gen_pe[3][4].u_pe/u_mac/DSP48E1 -> 32-bit Ripple Adder -> acc_reg
+|   Data Path Delay : 7.100 ns
+|   Clock Period    : 4.000 ns (250 MHz)
+|   Slack Violation : -3.100 ns (3.1 ns Timing Failure)
+|
+| Optimization Strategy Implemented:
+|   1. Carry-Save Adder (CSA) Insertion: Converted 32-bit CPA adder tree to 3:2 CSA compressor logic.
+|   2. Register Retiming (synth_design -retiming): Inserted pipeline register stage between
+|      CSA reduction and final Carry-Propagate Accumulator.
+|
+| Post-Optimization Critical Path:
+|   Source: u_systolic_core/gen_pe[3][4].u_pe/u_mac_core/csa_sum_reg_reg[14]/C
+|   Destination: u_systolic_core/gen_pe[3][4].u_pe/u_mac_core/acc_out_reg[31]/D
+|   Requirement: 4.000 ns
+|   Data Path Delay: 3.708 ns
+|   Logic Delay: 1.412 ns (38.1%)
+|   Route Delay: 2.296 ns (61.9%)
+|   Clock Uncertainty: 0.150 ns
+|   Slack (WNS): +0.142 ns
+------------------------------------------------------------------------------------------------
