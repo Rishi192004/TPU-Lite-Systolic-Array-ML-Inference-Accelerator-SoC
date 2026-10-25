@@ -35,7 +35,6 @@ module processing_element #(
     // ------------------------------------------------------------------------
     logic signed [INT8_WIDTH-1:0] weight_reg;
     logic signed [INT8_WIDTH-1:0] act_reg;
-    logic signed [ACC_WIDTH-1:0]  mac_acc_result;
 
     // Weight Preload logic
     always_ff @(posedge clk or negedge rst_n) begin
@@ -55,7 +54,7 @@ module processing_element #(
         end
     end
 
-    // Instantiation of Retimed CSA MAC Unit
+    // Instantiation of Retimed Pipelined MAC Unit
     pe_mac_csa #(
         .INT8_WIDTH(INT8_WIDTH),
         .ACC_WIDTH (ACC_WIDTH)
@@ -66,11 +65,11 @@ module processing_element #(
         .enable    (enable),
         .act_in    (act_in),
         .wgt_in    (weight_reg),
-        .acc_out   (mac_acc_result)
+        .acc_in    (acc_in),
+        .acc_out   (acc_out)
     );
 
-    // Combine upper partial sum with local MAC product output
+    // Horizontal activation to next PE
     assign act_out = act_reg;
-    assign acc_out = mac_acc_result + acc_in;
 
 endmodule
