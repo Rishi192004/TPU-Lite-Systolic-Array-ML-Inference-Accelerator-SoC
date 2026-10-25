@@ -58,11 +58,11 @@ def generate_test_suite(num_vectors=10000, output_dir="sim/tb"):
             if v_idx < 100: # First 100 vectors saved to file for simulation
                 f_hex.write(f"// Vector #{v_idx}\n")
                 # Write W matrix (64 bytes)
-                f_hex.write("".join([f"{b & 0xFF:02X}" for b in W.flatten()]) + "\n")
+                f_hex.write("".join([f"{int(b) & 0xFF:02X}" for b in W.flatten()]) + "\n")
                 # Write A matrix (64 bytes)
-                f_hex.write("".join([f"{b & 0xFF:02X}" for b in A.flatten()]) + "\n")
+                f_hex.write("".join([f"{int(b) & 0xFF:02X}" for b in A.flatten()]) + "\n")
                 # Write C expected result (256 bytes = 64 x 32-bit hex)
-                f_hex.write("".join([f"{val & 0xFFFFFFFF:08X}" for val in C_expected.flatten()]) + "\n")
+                f_hex.write("".join([f"{int(val) & 0xFFFFFFFF:08X}" for val in C_expected.flatten()]) + "\n")
 
     avg_pe_utilization = (active_pe_sum / (total_compute_cycles * total_pes)) * 100.0
     

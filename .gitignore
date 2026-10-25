@@ -1,0 +1,28 @@
+# Simulation build artefacts
+*.out
+sim_test
+a.out
+*.vcd
+*.fst
+*.lxt
+*.lx2
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Vivado / Xilinx project files (not real in this project)
+*.jou
+*.log
+*.xpr
+*.runs/
+*.cache/
+*.ip_user_files/
+*.gen/
+*.hw/
+*.sim/
+
+# OS noise
+.DS_Store
+Thumbs.db
