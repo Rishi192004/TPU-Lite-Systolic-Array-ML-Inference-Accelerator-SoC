@@ -3,6 +3,11 @@
 // File: rtl/assertions/sva_axi4_checker.sv
 // Description: Formal temporal properties verifying AXI4 protocol compliance,
 //              handshake stability, address alignment, and burst safety.
+//
+// NOTE: Concurrent SVA properties (|=>, ##) require Questa/VCS/JasperGold.
+//       Icarus Verilog only supports immediate assertions. The temporal
+//       properties are compiled only when FORMAL_SVA is defined.
+//       Equivalent simulation-time immediate checks are always active.
 // ============================================================================
 
 `timescale 1ns / 1ps
@@ -35,6 +40,7 @@ module sva_axi4_checker #(
     input logic                    rready
 );
 
+`ifdef FORMAL_SVA
     // ------------------------------------------------------------------------
     // SVA Property 1: AWVALID must remain HIGH until AWREADY is asserted
     // ------------------------------------------------------------------------
@@ -74,5 +80,57 @@ module sva_axi4_checker #(
     endproperty
     assert_addr_alignment: assert property (p_addr_alignment)
         else $warning("[SVA WARNING] AXI AWADDR is unaligned to 64-bit boundary!");
+
+`else
+    // ------------------------------------------------------------------------
+    // Simulation-time immediate equivalents (Icarus Verilog compatible)
+    // ------------------------------------------------------------------------
+    logic awvalid_q, arvalid_q, wvalid_q;
+    logic [ADDR_WIDTH-1:0] awaddr_q, araddr_q;
+    logic [DATA_WIDTH-1:0] wdata_q;
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            awvalid_q <= 1'b0;
+            arvalid_q <= 1'b0;
+            wvalid_q  <= 1'b0;
+            awaddr_q  <= '0;
+            araddr_q  <= '0;
+            wdata_q   <= '0;
+        end else begin
+            awvalid_q <= awvalid;
+            arvalid_q <= arvalid;
+            wvalid_q  <= wvalid;
+            awaddr_q  <= awaddr;
+            araddr_q  <= araddr;
+            wdata_q   <= wdata;
+        end
+    end
+
+    always @(posedge clk) begin
+        if (rst_n) begin
+            // Check 1: awvalid stability — if it was high last cycle and not
+            // yet acknowledged, it must remain high
+            if (awvalid_q && !awready) begin
+                assert (awvalid === 1'b1)
+                    else $error("[IMM-SVA] AWVALID dropped before AWREADY!");
+                assert (awaddr === awaddr_q)
+                    else $error("[IMM-SVA] AWADDR changed before AWREADY!");
+            end
+            // Check 2: wvalid stability
+            if (wvalid_q && !wready) begin
+                assert (wvalid === 1'b1)
+                    else $error("[IMM-SVA] WVALID dropped before WREADY!");
+            end
+            // Check 3: arvalid stability
+            if (arvalid_q && !arready) begin
+                assert (arvalid === 1'b1)
+                    else $error("[IMM-SVA] ARVALID dropped before ARREADY!");
+                assert (araddr === araddr_q)
+                    else $error("[IMM-SVA] ARADDR changed before ARREADY!");
+            end
+        end
+    end
+`endif
 
 endmodule

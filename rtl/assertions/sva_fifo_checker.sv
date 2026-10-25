@@ -2,6 +2,9 @@
 // TPU-Lite Accelerator SoC - SystemVerilog Assertions (SVA) Buffer Checker
 // File: rtl/assertions/sva_fifo_checker.sv
 // Description: Verifies SRAM pointer bounds, buffer overflow, and underflow conditions.
+//
+// NOTE: Concurrent SVA requires Questa/VCS/JasperGold.
+//       Immediate assertions used for Icarus Verilog compatibility.
 // ============================================================================
 
 `timescale 1ns / 1ps
@@ -16,6 +19,7 @@ module sva_fifo_checker #(
     input logic        read_en
 );
 
+`ifdef FORMAL_SVA
     // ------------------------------------------------------------------------
     // SVA Property 1: Address Pointer must never exceed maximum SRAM depth
     // ------------------------------------------------------------------------
@@ -35,5 +39,25 @@ module sva_fifo_checker #(
     endproperty
     assert_no_simultaneous_rw_collision: assert property (p_no_simultaneous_rw_collision)
         else $warning("[SVA WARNING] Simultaneous Read & Write collision on SRAM address!");
+
+`else
+    // ------------------------------------------------------------------------
+    // Simulation-time immediate equivalents (Icarus Verilog compatible)
+    // ------------------------------------------------------------------------
+    always @(posedge clk) begin
+        if (rst_n) begin
+            // Check 1: address in bounds when accessed
+            if (write_en || read_en) begin
+                assert (sram_addr < DEPTH)
+                    else $error("[IMM-SVA] SRAM address %0d exceeds depth %0d!",
+                                sram_addr, DEPTH);
+            end
+            // Check 2: no simultaneous read+write
+            if (write_en && read_en) begin
+                $warning("[IMM-SVA] Simultaneous SRAM read+write at addr %0d", sram_addr);
+            end
+        end
+    end
+`endif
 
 endmodule

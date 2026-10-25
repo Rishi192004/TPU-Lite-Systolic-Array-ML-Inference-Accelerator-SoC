@@ -104,8 +104,8 @@ module tpu_lite_top #(
     logic        tpu_load_wgt, tpu_clear_acc, tpu_enable, tpu_data_valid;
     logic signed [ACC_WIDTH-1:0] sys_acc_out [0:ARRAY_SIZE-1];
 
-    // Main SoC Controller FSM State
-    tpu_state_e state, next_state;
+    // Main SoC Controller FSM State (logic [2:0] for Icarus Verilog compatibility)
+    logic [2:0] state, next_state;
 
     // Combined System Reset Signal
     logic sys_rst_n;
