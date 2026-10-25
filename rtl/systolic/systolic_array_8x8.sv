@@ -42,20 +42,31 @@ module systolic_array_8x8 #(
             if (r == 0) begin
                 assign act_skewed[0] = act_vector[0];
             end else begin
-                // Shift register of depth 'r'
-                logic signed [INT8_WIDTH-1:0] shift_reg [0:r-1];
+                logic signed [INT8_WIDTH-1:0] skew_regs [0:r-1];
                 
                 always_ff @(posedge clk or negedge rst_n) begin
                     if (!rst_n) begin
-                        for (int k = 0; k < r; k++) shift_reg[k] <= '0;
+                        skew_regs[0] <= '0;
+                    end else if (clear_acc) begin
+                        skew_regs[0] <= '0;
                     end else if (enable) begin
-                        shift_reg[0] <= act_vector[r];
-                        for (int k = 1; k < r; k++) begin
-                            shift_reg[k] <= shift_reg[k-1];
+                        skew_regs[0] <= act_vector[r];
+                    end
+                end
+                
+                genvar s;
+                for (s = 1; s < r; s++) begin : gen_skew_delay
+                    always_ff @(posedge clk or negedge rst_n) begin
+                        if (!rst_n) begin
+                            skew_regs[s] <= '0;
+                        end else if (clear_acc) begin
+                            skew_regs[s] <= '0;
+                        end else if (enable) begin
+                            skew_regs[s] <= skew_regs[s-1];
                         end
                     end
                 end
-                assign act_skewed[r] = shift_reg[r-1];
+                assign act_skewed[r] = skew_regs[r-1];
             end
         end
     endgenerate
@@ -108,16 +119,51 @@ module systolic_array_8x8 #(
         end
     endgenerate
 
-    // Connect bottom row accumulator wires to outputs
+    // ------------------------------------------------------------------------
+    // Output De-skewing Registers
+    // Column 'c' finishes at cycle (m + ARRAY_SIZE + c). Delaying column 'c' by
+    // (ARRAY_SIZE - 1 - c) cycles aligns all 8 columns of row 'm' at cycle
+    // (m + 2*ARRAY_SIZE - 1), outputting full parallel row vectors.
+    // ------------------------------------------------------------------------
+    genvar c;
     generate
-        for (col_idx = 0; col_idx < ARRAY_SIZE; col_idx++) begin : gen_outputs
-            assign acc_matrix_out[col_idx] = pe_acc_wire[ARRAY_SIZE][col_idx];
+        for (c = 0; c < ARRAY_SIZE; c++) begin : gen_output_deskew
+            localparam int DESKEW_DEPTH = ARRAY_SIZE - 1 - c;
+            if (DESKEW_DEPTH == 0) begin
+                assign acc_matrix_out[c] = pe_acc_wire[ARRAY_SIZE][c];
+            end else begin
+                logic signed [ACC_WIDTH-1:0] deskew_regs [0:DESKEW_DEPTH-1];
+                
+                always_ff @(posedge clk or negedge rst_n) begin
+                    if (!rst_n) begin
+                        deskew_regs[0] <= '0;
+                    end else if (clear_acc) begin
+                        deskew_regs[0] <= '0;
+                    end else if (enable) begin
+                        deskew_regs[0] <= pe_acc_wire[ARRAY_SIZE][c];
+                    end
+                end
+                
+                genvar ds;
+                for (ds = 1; ds < DESKEW_DEPTH; ds++) begin : gen_deskew_delay
+                    always_ff @(posedge clk or negedge rst_n) begin
+                        if (!rst_n) begin
+                            deskew_regs[ds] <= '0;
+                        end else if (clear_acc) begin
+                            deskew_regs[ds] <= '0;
+                        end else if (enable) begin
+                            deskew_regs[ds] <= deskew_regs[ds-1];
+                        end
+                    end
+                end
+                assign acc_matrix_out[c] = deskew_regs[DESKEW_DEPTH-1];
+            end
         end
     endgenerate
 
     // ------------------------------------------------------------------------
     // Compute Pipeline Valid Latency Counter
-    // Systolic latency for 8x8 array is 3*ARRAY_SIZE - 2 cycles.
+    // First row is valid at cycle (2*ARRAY_SIZE - 1). Valid for ARRAY_SIZE cycles.
     // ------------------------------------------------------------------------
     logic [7:0] compute_counter;
     
@@ -129,10 +175,11 @@ module systolic_array_8x8 #(
             compute_counter <= '0;
             data_valid      <= 1'b0;
         end else if (enable) begin
-            if (compute_counter < (3 * ARRAY_SIZE)) begin
-                compute_counter <= compute_counter + 1'b1;
-                data_valid      <= (compute_counter >= (2 * ARRAY_SIZE - 1));
-            end
+            compute_counter <= compute_counter + 1'b1;
+            data_valid      <= (compute_counter >= (2 * ARRAY_SIZE - 2)) &&
+                               (compute_counter < (3 * ARRAY_SIZE - 2));
+        end else begin
+            data_valid <= 1'b0;
         end
     end
 
